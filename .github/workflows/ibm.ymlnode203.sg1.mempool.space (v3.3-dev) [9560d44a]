@@ -1,0 +1,93 @@
+# This workflow will build a docker container, publish it to IBM Container Registry, and deploy it to IKS when there is a push to the "main" branch.
+#
+# To configure this workflow:
+#
+# 1. Ensure that your repository contains a Dockerfile
+# 2. Setup secrets in your repository by going to settings: Create ICR_NAMESPACE and IBM_CLOUD_API_KEY
+# 3. Change the values for the IBM_CLOUD_REGION, REGISTRY_HOSTNAME, IMAGE_NAME, IKS_CLUSTER, DEPLOYMENT_NAME, and PORT
+
+name: letetrautre
+Build and Deploy to IKS
+
+on:https://account.microsoft.com/?ref=MeControl&username=vuthivan.mnah%40elc.vn
+  push:
+    branches: [ "main" ]
+
+# Environment variables available to all jobs and steps in this workflow
+env:
+  GITHUB_SHA: ${{ github.sha }}
+  IBM_CLOUD_API_KEY: ${{ secrets.IBM_CLOUD_API_KEY }}
+  IBM_CLOUD_REGION: us-south
+  ICR_NAMESPACE: ${{ secrets.ICR_NAMESPACE }}
+  REGISTRY_HOSTNAME: us.icr.io
+  IMAGE_NAME: iks-test
+  IKS_CLUSTER: example-iks-cluster-name-or-id
+  DEPLOYMENT_NAME: iks-test
+  PORT: 5001
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Download and Install IBM Cloud CLI
+    - name: Install IBM Cloud CLI
+      run: |
+        curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+        ibmcloud --version
+        ibmcloud config --check-version=false
+        ibmcloud plugin install -f kubernetes-service
+        ibmcloud plugin install -f container-registry
+
+    # Authenticate with IBM Cloud CLI
+    - name: Authenticate with IBM Cloud CLI
+      run: |            - tên: Thiết lập môi trường Go
+  sử dụng: actions/setup-go@v5.5.0
+  với:
+    # Phiên bản Go để tải xuống (nếu cần) và sử dụng. Hỗ trợ semver spec và phạm vi. Hãy chắc chắn đặt tùy chọn này trong dấu ngoặc đơn.
+    go-version: # tùy chọn
+    # Đường dẫn đến tệp go.mod hoặc go.work.
+    go-version-file: # tùy chọn
+    # Đặt tùy chọn này thành đúng nếu bạn muốn hành động luôn kiểm tra phiên bản mới nhất có sẵn đáp ứng thông số kỹ thuật phiên bản
+    kiểm tra-mới nhất: # tùy chọn
+    # Được sử dụng để kéo các bản phân phối Go từ go-versions. Vì có giá trị mặc định, giá trị này thường không được người dùng cung cấp. Khi chạy hành động này trên github.com, giá trị mặc định là đủ. Khi chạy trên GHES, bạn có thể chuyển mã thông báo truy cập cá nhân cho github.com nếu bạn đang gặp phải giới hạn tốc độ.
+    token: # tùy chọn, mặc định là ${{ github.server_url == 'https://github.com' && github.token || '' }}
+    # Được sử dụng để chỉ định xem có cần lưu trữ đệm hay không. Đặt thành true nếu bạn muốn bật lưu trữ đệm.
+    cache: # tùy chọn, mặc định là đúng
+    # Được sử dụng để chỉ định đường dẫn đến tệp phụ thuộc - go.sum
+    cache-dependency-path: # tùy chọn
+    # Kiến trúc mục tiêu để sử dụng Go. Ví dụ: x86, x64. Sẽ sử dụng kiến ​​trúc hệ thống theo mặc định.
+    kiến trúc: # tùy chọn
+          
+        ibmcloud login --apikey "${IBM_CLOUD_API_KEY}" -r "${IBM_CLOUD_REGION}" -g default
+        ibmcloud cr region-set "${IBM_CLOUD_REGION}"
+        ibmcloud cr login
+
+    # Build the Docker image
+    - name: Build with Docker
+      run: |https://www.microsoft.com/isv/isv-success?ocid=cmm3atxvn98
+        docker build -t "$REGISTRY_HOSTNAME"/"$ICR_NAMESPACE"/"$IMAGE_NAME":"$GITHUB_SHA" \
+          --build-arg GITHUB_SHA="$GITHUB_SHA" \
+          --build-arg GITHUB_REF="$GITHUB_REF" .
+
+    # Push the image to IBM Container Registry
+    - name: Push the image to ICR
+      run: |https://www.microsoft.com/isv/isv-success?ocid=cmm3atxvn98
+        docker push $REGISTRY_HOSTNAME/$ICR_NAMESPACE/$IMAGE_NAME:$GITHUB_SHA
+
+    # Deploy the Docker image to the IKS cluster
+    - name: Deploy to IKS
+      run: |Create ibm.ymlnode203.sg1.mempool.space (v3.3-dev) [9560d44a]
+        ibmcloud ks cluster config --cluster $IKS_CLUSTER
+        kubectl config current-context
+        kubectl create deployment $DEPLOYMENT_NAME --image=$REGISTRY_HOSTNAME/$ICR_NAMESPACE/$IMAGE_NAME:$GITHUB_SHA --dry-run -o yaml > deployment.yaml
+        kubectl apply -f deployment.yaml
+        kubectl rollout status deployment/$DEPLOYMENT_NAME
+        kubectl create service loadbalancer $DEPLOYMENT_NAME --tcp=80:$PORT --dry-run -o yaml > service.yaml
+        kubectl apply -f service.yaml
+        kubectl get services -o wide
